@@ -1,0 +1,6 @@
+node_modules/
+qa/shots/
+out/
+*.pyc
+# test pictures stay local (real people)
+test-images/

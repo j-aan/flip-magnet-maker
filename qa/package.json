@@ -1,0 +1,15 @@
+{
+  "name": "flip-magnet-qa",
+  "private": true,
+  "description": "QA for Flip Magnet Maker: line-up engine test (Node) and end-to-end browser test (headless Chrome).",
+  "scripts": {
+    "align": "node qa_align.js ../index.html",
+    "browser": "node qa_browser.js ../index.html"
+  },
+  "dependencies": {
+    "@techstark/opencv-js": "4.10.0-release.1",
+    "jpeg-js": "^0.4.4",
+    "pngjs": "^7.0.0",
+    "puppeteer-core": "23.11.1"
+  }
+}

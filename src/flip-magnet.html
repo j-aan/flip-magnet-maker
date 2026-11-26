@@ -1,0 +1,908 @@
+<title>Flip Magnet Maker</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: workbench — left column = images + print settings, right column = sticky preview + outputs. Stacks on phones. */
+:root{
+  --bg:#f3f6f1; --panel:#ffffff; --ink:#15241b; --muted:#5b6b60; --line:#d9e2d8;
+  --green:#055435; --leaf:#46a531; --amber:#f8af04; --amber-ink:#5a3e00;
+  --soft:#e8f0e4; --warn:#9a5b00; --bad:#b3261e;
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --body:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1611; --panel:#16211a; --ink:#e4ede5; --muted:#9db0a2; --line:#2a3a2f;
+  --green:#5cc98a; --leaf:#6fcf55; --amber:#f8b81f; --amber-ink:#2a1d00;
+  --soft:#1d2c22; --warn:#f0b357; --bad:#ff8a80; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1611; --panel:#16211a; --ink:#e4ede5; --muted:#9db0a2; --line:#2a3a2f;
+  --green:#5cc98a; --leaf:#6fcf55; --amber:#f8b81f; --amber-ink:#2a1d00;
+  --soft:#1d2c22; --warn:#f0b357; --bad:#ff8a80; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body)}
+.wrap{max-width:1180px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:18px}
+h1{font:800 clamp(28px,4vw,40px)/1.05 var(--display);margin:0;letter-spacing:-.01em;color:var(--green);text-wrap:balance}
+h1 span{color:var(--ink)}
+.sub{margin:6px 0 0;color:var(--muted);max-width:62ch}
+.lens{display:flex;gap:3px;align-items:flex-end;height:34px}
+.lens i{display:block;width:9px;height:100%;border-radius:9px 9px 0 0;background:linear-gradient(90deg,var(--leaf) 50%,var(--amber) 50%)}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:18px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.col{display:flex;flex-direction:column;gap:18px;min-width:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;min-width:0}
+.panel h2{font:700 17px/1.2 var(--display);margin:0 0 12px;display:flex;align-items:center;gap:10px}
+.panel h2 .n{font:500 12px var(--mono);color:var(--muted);letter-spacing:.06em}
+.sticky{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+@media (max-width:860px){.sticky{position:static}}
+label.lbl,.lbl{display:block;font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.row{display:flex;flex-wrap:wrap;gap:14px}
+.row>*{flex:1 1 150px;min-width:0}
+input[type=number],select{width:100%;font:500 15px var(--body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:9px 10px}
+input[type=number]{font-family:var(--mono)}
+input[type=range]{width:100%;accent-color:var(--leaf)}
+:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--bg)}
+.seg button{flex:1;border:0;background:transparent;color:var(--ink);font:600 14px var(--body);padding:10px 8px;cursor:pointer;line-height:1.25}
+.seg button small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.seg button[aria-pressed=true]{background:var(--green);color:#fff}
+.seg button[aria-pressed=true] small{color:#d6eedd}
+:root[data-theme=dark] .seg button[aria-pressed=true],:root[data-theme=dark] .seg button[aria-pressed=true] small{color:#06150c}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .seg button[aria-pressed=true],:root:not([data-theme=light]) .seg button[aria-pressed=true] small{color:#06150c}}
+.slots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.slot{position:relative;border:2px dashed var(--line);border-radius:12px;aspect-ratio:1;max-width:100%;display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer;background:var(--bg);overflow:hidden;color:var(--muted);font-size:13px;padding:6px}
+.slot.has{border-style:solid;border-color:var(--leaf);padding:0}
+.slot.drag{border-color:var(--amber);background:var(--soft)}
+.slot img{width:100%;height:100%;object-fit:cover}
+.slot .tag{position:absolute;left:6px;top:6px;background:var(--green);color:#fff;font:600 11px var(--mono);padding:2px 7px;border-radius:20px}
+.slot .ex{position:absolute;right:6px;bottom:6px;background:var(--amber);color:var(--amber-ink);font:600 10px var(--body);padding:2px 7px;border-radius:20px;letter-spacing:.04em;text-transform:uppercase}
+.slot .x{position:absolute;right:5px;top:5px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:15px;line-height:1;cursor:pointer}
+.hint{font-size:13px;color:var(--muted);margin:10px 0 0}
+.align{border-top:1px solid var(--line);margin-top:14px;padding-top:14px;display:flex;flex-direction:column;gap:10px}
+.align h3{margin:0;font:600 14px var(--body);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.slide{display:grid;grid-template-columns:72px minmax(0,1fr) 78px;gap:10px;align-items:center;font-size:13px;color:var(--muted)}
+.slide input[type=number]{padding:5px 6px;font-size:13px}
+.btn{font:600 14px var(--body);border-radius:10px;padding:10px 14px;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+.btn.sm{padding:6px 10px;font-size:13px}
+.btn.primary{background:var(--green);border-color:var(--green);color:#fff}
+.btn.amber{background:var(--amber);border-color:var(--amber);color:var(--amber-ink)}
+.btn:disabled{opacity:.5;cursor:progress}
+:root[data-theme=dark] .btn.primary{color:#06150c}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .btn.primary{color:#06150c}}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:14px}
+.fact{background:var(--soft);border-radius:10px;padding:10px 12px;min-width:0}
+.fact b{display:block;font:500 17px var(--mono);font-variant-numeric:tabular-nums}
+.fact span{font-size:12px;color:var(--muted)}
+.pill{display:inline-block;font:600 11px var(--body);padding:2px 8px;border-radius:20px;letter-spacing:.03em}
+.pill.ok{background:var(--leaf);color:#fff}
+.pill.meh{background:var(--amber);color:var(--amber-ink)}
+.stage{background:repeating-conic-gradient(var(--soft) 0 25%,var(--bg) 0 50%) 0 0/18px 18px;border-radius:12px;padding:14px;display:flex;justify-content:center;align-items:center;min-height:240px;overflow:hidden}
+.stage canvas{max-width:100%;height:auto;border-radius:4px;box-shadow:0 6px 22px rgba(0,0,0,.18);image-rendering:auto}
+.stage canvas.px{image-rendering:pixelated}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.tabs button{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:20px;padding:6px 12px;font:600 13px var(--body);cursor:pointer}
+.tabs button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.cap{font-size:13px;color:var(--muted);margin:10px 0 0;min-height:1.5em}
+.outs{display:flex;flex-direction:column;gap:10px}
+.out{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.out div{min-width:0}
+.out b{display:block;font-weight:600}
+.out span{font-size:13px;color:var(--muted);font-family:var(--mono)}
+.status{font-size:14px;min-height:1.5em;margin:4px 0 0}
+.status.err{color:var(--bad)}
+.status.ok{color:var(--leaf)}
+.pill.bad{background:var(--bad);color:#fff}
+.qa-box{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.qa-box:empty{display:none}
+.qa-head{display:flex;gap:8px;align-items:center;font-size:13px;flex-wrap:wrap}
+.qa-wrap{overflow-x:auto;max-width:100%}
+table.qa{border-collapse:collapse;font-size:12px}
+table.qa th{text-align:left;font-weight:600;color:var(--muted);padding:3px 12px 3px 0;vertical-align:top;white-space:nowrap}
+table.qa td{font-family:var(--mono);padding:3px 0;font-variant-numeric:tabular-nums}
+.manual{margin-top:12px;border:1px solid var(--line);border-radius:12px;padding:12px;display:none;gap:10px;flex-direction:column}
+.manual.on{display:flex}
+.manual img{max-width:100%;border-radius:6px;border:1px solid var(--line)}
+ol.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+ol.steps li{padding-left:4px}
+ol.steps b{font-weight:600}
+.dirart{display:flex;gap:12px;align-items:center;margin-top:10px;font-size:13px;color:var(--muted)}
+.dirart svg{flex:0 0 auto}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Flip Magnet <span>Maker</span></h1>
+      <p class="sub">Turn 2 or 3 pictures into a lenticular print. Pick your lens, printer and size, line the pictures up, then save a print-ready PNG.</p>
+    </div>
+    <div class="lens" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </header>
+
+  <div class="grid">
+    <div class="col">
+      <!-- IMAGES -->
+      <section class="panel" aria-labelledby="h-img">
+        <h2 id="h-img"><span class="n">1</span> Pictures</h2>
+        <div class="slots" id="slots"></div>
+        <input type="file" id="file" accept="image/*" class="sr" aria-label="Choose image">
+        <p class="hint">Tap a box or drop a picture on it. Picture 1 is the reference; the others get lined up to it. The third box is optional.</p>
+        <div id="aligns"></div>
+      </section>
+
+      <!-- PRINT SETTINGS -->
+      <section class="panel" aria-labelledby="h-set">
+        <h2 id="h-set"><span class="n">2</span> Lens, printer and size</h2>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div>
+            <span class="lbl" id="l-dir">Flip direction</span>
+            <div class="seg" role="group" aria-labelledby="l-dir">
+              <button type="button" id="dir-walk" aria-pressed="true">Walk past<small>tilt left / right</small></button>
+              <button type="button" id="dir-tilt" aria-pressed="false">Tilt<small>tilt up / down</small></button>
+            </div>
+            <div class="dirart" id="dirart"></div>
+          </div>
+          <div class="row">
+            <div>
+              <label class="lbl" for="lpi">Lens LPI</label>
+              <input type="number" id="lpi" min="10" max="200" step="0.01" value="60">
+            </div>
+            <div>
+              <label class="lbl" for="printer">Printer</label>
+              <select id="printer">
+                <option value="720">Epson (720 DPI)</option>
+                <option value="600">Canon (600 DPI)</option>
+                <option value="600h">HP (600 DPI)</option>
+                <option value="600b">Brother (600 DPI)</option>
+                <option value="custom">Other DPI…</option>
+              </select>
+            </div>
+            <div id="dpiWrap" hidden>
+              <label class="lbl" for="dpi">DPI</label>
+              <input type="number" id="dpi" min="150" max="2400" step="1" value="300">
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label class="lbl" for="size">Magnet size</label>
+              <select id="size">
+                <option value="2x2">2 × 2 in</option>
+                <option value="2x3">2 × 3 in (portrait)</option>
+                <option value="3x2">3 × 2 in (landscape)</option>
+                <option value="3x3">3 × 3 in</option>
+                <option value="2.5x3.5">2.5 × 3.5 in (card)</option>
+                <option value="custom">Custom…</option>
+              </select>
+            </div>
+            <div id="cw" hidden><label class="lbl" for="w">Width (in)</label><input type="number" id="w" min="0.5" max="11" step="0.05" value="2"></div>
+            <div id="ch" hidden><label class="lbl" for="h">Height (in)</label><input type="number" id="h" min="0.5" max="11" step="0.05" value="2"></div>
+          </div>
+          <div class="row">
+            <div>
+              <label class="lbl" for="sheet">Full sheet</label>
+              <select id="sheet">
+                <option value="a4">A4</option>
+                <option value="letter">Letter</option>
+                <option value="4x6">4 × 6 photo paper</option>
+              </select>
+            </div>
+            <div>
+              <label class="lbl" for="bleed">Trim edge</label>
+              <select id="bleed">
+                <option value="1">Bleed + crop marks</option>
+                <option value="0">Exact size, no marks</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <span class="lbl">Crop</span>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div class="slide"><span>Left ↔ right</span><input type="range" id="panX" min="0" max="100" value="50" aria-label="Crop left to right"><input type="number" id="panXn" min="0" max="100" value="50" aria-label="Crop left to right percent"></div>
+              <div class="slide"><span>Top ↕ bottom</span><input type="range" id="panY" min="0" max="100" value="100" aria-label="Crop top to bottom"><input type="number" id="panYn" min="0" max="100" value="100" aria-label="Crop top to bottom percent"></div>
+              <div class="slide"><span>Zoom %</span><input type="range" id="zoom" min="100" max="250" value="100" aria-label="Zoom"><input type="number" id="zoomn" min="100" max="250" value="100" aria-label="Zoom percent"></div>
+            </div>
+          </div>
+        </div>
+        <div class="facts" id="facts"></div>
+      </section>
+    </div>
+
+    <div class="col sticky">
+      <!-- PREVIEW -->
+      <section class="panel" aria-labelledby="h-prev">
+        <h2 id="h-prev"><span class="n">3</span> Preview</h2>
+        <div class="tabs" role="group" aria-label="Preview mode">
+          <button type="button" data-mode="flip" aria-pressed="true">Flip</button>
+          <button type="button" data-mode="overlay" aria-pressed="false">Overlay check</button>
+          <button type="button" data-mode="strips" aria-pressed="false">Strips (zoom)</button>
+        </div>
+        <div class="stage"><canvas id="prev" width="560" height="560" aria-label="Preview of the magnet"></canvas></div>
+        <p class="cap" id="cap"></p>
+      </section>
+
+      <!-- OUTPUT -->
+      <section class="panel" aria-labelledby="h-out">
+        <h2 id="h-out"><span class="n">4</span> Print files</h2>
+        <div class="outs">
+          <div class="out"><div><b>Pitch test</b><span id="o-pitch"></span></div><button class="btn amber" type="button" id="b-pitch">Save pitch test</button></div>
+          <div class="out"><div><b>One magnet</b><span id="o-one"></span></div><button class="btn primary" type="button" id="b-one">Save magnet</button></div>
+          <div class="out"><div><b>Full sheet</b><span id="o-sheet"></span></div><button class="btn primary" type="button" id="b-sheet">Save sheet</button></div>
+        </div>
+        <p class="status" id="status" role="status" aria-live="polite"></p>
+        <div class="manual" id="manual"><span>Saving isn't available in this view. Right-click the picture below (or long-press on a phone) and choose <b>Save image</b>. The file keeps its print size.</span><img id="manualImg" alt="Print file to save"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="h-how">
+        <h2 id="h-how">How to print</h2>
+        <ol class="steps">
+          <li><b>Print the pitch test</b> on the same printer and paper. Lay the lens on it with the ridges along the lines. The bar that looks <b>one solid colour</b> and flips evenly is your real LPI. Type it in above.</li>
+          <li>Print the magnet or sheet at <b>100% / actual size</b>. Turn off "fit to page". Glossy photo paper, best quality.</li>
+          <li>Let the ink dry about an hour. Line the lens ridges up with the strips, turn it slightly until one picture looks clean, then press it down from one edge.</li>
+          <li>Stick it on magnet sheet and cut on the crop marks.</li>
+        </ol>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+const $ = id => document.getElementById(id);
+const SHEETS = { a4: [8.27, 11.69], letter: [8.5, 11], "4x6": [4, 6] };
+const SHEET_NAMES = { a4: "A4", letter: "Letter", "4x6": "4×6" };
+const CV_URL = "https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.10.0-release.1/dist/opencv.js";
+
+// ---------------- state
+const S = { dir: "walk", lpi: 60, printer: "720", dpiCustom: 300, size: "2x2", w: 2, h: 2,
+            sheet: "a4", bleed: "1", panX: 50, panY: 100, zoom: 100 };
+try { Object.assign(S, JSON.parse(localStorage.getItem("flipmagnet.v1") || "{}")); } catch (e) {}
+const save = () => { try { localStorage.setItem("flipmagnet.v1", JSON.stringify(S)); } catch (e) {} };
+// frames: {img, url, name, demo, s, rot, dx, dy}
+let F = [null, null, null];
+
+const dpi = () => S.printer === "custom" ? Math.max(72, +S.dpiCustom || 300) : parseInt(S.printer, 10);
+const dims = () => {
+  if (S.size === "custom") return [Math.max(.5, +S.w || 2), Math.max(.5, +S.h || 2)];
+  const [a, b] = S.size.split("x").map(Number); return [a, b];
+};
+const active = () => F.map((f, i) => f ? i : -1).filter(i => i >= 0);
+const frames = () => active().map(i => F[i]);
+
+// ---------------- demo frames (clearly marked examples)
+function demoFrame(bg, fg, word, sub) {
+  const c = document.createElement("canvas"); c.width = 1200; c.height = 1200;
+  const x = c.getContext("2d");
+  x.fillStyle = bg; x.fillRect(0, 0, 1200, 1200);
+  x.fillStyle = fg; x.globalAlpha = .18;
+  for (let i = 0; i < 7; i++) { x.beginPath(); x.arc(600, 1300, 260 + i * 140, Math.PI, 2 * Math.PI); x.lineWidth = 50; x.strokeStyle = fg; x.stroke(); }
+  x.globalAlpha = 1; x.textAlign = "center"; x.fillStyle = fg;
+  x.font = "800 190px 'Bricolage Grotesque', system-ui, sans-serif"; x.fillText(word, 600, 560);
+  x.font = "600 64px 'IBM Plex Sans', system-ui, sans-serif"; x.fillText(sub, 600, 680);
+  x.font = "500 40px 'IBM Plex Mono', monospace"; x.fillText("EXAMPLE FRAME", 600, 160);
+  return c;
+}
+function loadDemo() {
+  const a = demoFrame("#f8af04", "#055435", "SALAMAT!", "Quinta Store");
+  const b = demoFrame("#055435", "#f8af04", "BALIK MO!", "see you again");
+  [a, b].forEach((c, i) => {
+    const img = new Image(); img.onload = () => { render(); };
+    img.src = c.toDataURL("image/png");
+    F[i] = { img, url: img.src, name: "example-" + (i + 1), demo: true, s: 1, rot: 0, dx: 0, dy: 0, w: 1200, h: 1200 };
+  });
+}
+
+// ---------------- geometry
+function cropRect(ref, wIn, hIn) {
+  const a = wIn / hIn, W0 = ref.w, H0 = ref.h;
+  let w, h; if (W0 / H0 > a) { h = H0; w = H0 * a; } else { w = W0; h = W0 / a; }
+  const z = Math.max(1, S.zoom / 100); w /= z; h /= z;
+  return { x: (W0 - w) * S.panX / 100, y: (H0 - h) * S.panY / 100, w, h };
+}
+function applyT(ctx, f, ref) {
+  if (f === ref) return;
+  ctx.translate(ref.w / 2 + f.dx, ref.h / 2 + f.dy);
+  ctx.rotate(f.rot * Math.PI / 180);
+  ctx.scale(f.s, f.s);
+  ctx.translate(-f.w / 2, -f.h / 2);
+}
+// draw one frame, cropped, at innerW x innerH plus bleed b on each side
+function renderFrame(f, ref, innerW, innerH, b) {
+  const [wIn, hIn] = dims();
+  const c = document.createElement("canvas"); c.width = innerW + 2 * b; c.height = innerH + 2 * b;
+  const x = c.getContext("2d");
+  x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height);
+  const r = cropRect(ref, wIn, hIn), k = innerW / r.w;
+  x.imageSmoothingEnabled = true; x.imageSmoothingQuality = "high";
+  x.translate(b, b); x.scale(k, k); x.translate(-r.x, -r.y);
+  applyT(x, f, ref);
+  x.drawImage(f.img, 0, 0, f.w, f.h);
+  return c;
+}
+function interlace(cans, lpi, d, dir) {
+  const W = cans[0].width, H = cans[0].height, n = cans.length;
+  const src = cans.map(c => new Uint32Array(c.getContext("2d").getImageData(0, 0, W, H).data.buffer));
+  const out = new ImageData(W, H), o = new Uint32Array(out.data.buffer);
+  const L = dir === "walk" ? W : H, owner = new Uint8Array(L);
+  // lens optics mirror each lens, so frames go in reverse order under it
+  for (let i = 0; i < L; i++) owner[i] = (n - 1) - (Math.floor((i + .5) * lpi / d * n) % n);
+  if (dir === "walk") { for (let y = 0; y < H; y++) { const r = y * W; for (let xx = 0; xx < W; xx++) o[r + xx] = src[owner[xx]][r + xx]; } }
+  else { for (let y = 0; y < H; y++) o.set(src[owner[y]].subarray(y * W, (y + 1) * W), y * W); }
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  c.getContext("2d").putImageData(out, 0, 0); return c;
+}
+function withMarks(inner, d, b, marks) {
+  if (!marks) return inner;
+  const m = Math.round(.2 * d);
+  const c = document.createElement("canvas"); c.width = inner.width + 2 * m; c.height = inner.height + 2 * m;
+  const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height);
+  x.drawImage(inner, m, m);
+  const x0 = m + b, y0 = m + b, x1 = c.width - m - b, y1 = c.height - m - b, g = Math.round(.04 * d);
+  x.strokeStyle = "#000"; x.lineWidth = Math.max(1, Math.round(d / 300));
+  x.beginPath();
+  for (const xx of [x0, x1]) { x.moveTo(xx + .5, 0); x.lineTo(xx + .5, m - g); x.moveTo(xx + .5, c.height - m + g); x.lineTo(xx + .5, c.height); }
+  for (const yy of [y0, y1]) { x.moveTo(0, yy + .5); x.lineTo(m - g, yy + .5); x.moveTo(c.width - m + g, yy + .5); x.lineTo(c.width, yy + .5); }
+  x.stroke(); return c;
+}
+function buildMagnet() {
+  const fr = frames(); if (fr.length < 2) throw new Error("Add at least 2 pictures.");
+  const d = dpi(), [wIn, hIn] = dims(), marks = S.bleed === "1";
+  const iw = Math.round(wIn * d), ih = Math.round(hIn * d), b = marks ? Math.round(d / 16) : 0;
+  const cans = fr.map(f => renderFrame(f, fr[0], iw, ih, b));
+  return withMarks(interlace(cans, S.lpi, d, S.dir), d, b, marks);
+}
+function buildSheet(tile) {
+  const d = dpi(), [sw, sh] = SHEETS[S.sheet].map(v => Math.round(v * d));
+  const edge = Math.round(.25 * d), gap = Math.round(.15 * d);
+  const cols = Math.max(1, Math.floor((sw - 2 * edge + gap) / (tile.width + gap)));
+  const rows = Math.max(1, Math.floor((sh - 2 * edge + gap) / (tile.height + gap)));
+  const c = document.createElement("canvas"); c.width = sw; c.height = sh;
+  const x = c.getContext("2d"); if (!x) throw new Error("Sheet too big for this device. Try a lower DPI or save one magnet.");
+  x.fillStyle = "#fff"; x.fillRect(0, 0, sw, sh);
+  const ox = Math.floor((sw - (cols * tile.width + (cols - 1) * gap)) / 2), oy = Math.floor((sh - (rows * tile.height + (rows - 1) * gap)) / 2);
+  for (let r = 0; r < rows; r++) for (let q = 0; q < cols; q++) x.drawImage(tile, ox + q * (tile.width + gap), oy + r * (tile.height + gap));
+  return { canvas: c, count: rows * cols };
+}
+function sheetCount() {
+  const d = 100, [wIn, hIn] = dims(), marks = S.bleed === "1";
+  const tw = wIn * d + (marks ? 2 * (d / 16 + .2 * d) : 0), th = hIn * d + (marks ? 2 * (d / 16 + .2 * d) : 0);
+  const [sw, sh] = SHEETS[S.sheet].map(v => v * d), edge = .25 * d, gap = .15 * d;
+  return Math.max(1, Math.floor((sw - 2 * edge + gap) / (tw + gap))) * Math.max(1, Math.floor((sh - 2 * edge + gap) / (th + gap)));
+}
+function buildPitch() {
+  const d = dpi(), n = Math.max(2, frames().length || 2);
+  const vals = []; for (let v = S.lpi - .6; v <= S.lpi + .6 + 1e-9; v += .1) vals.push(Math.round(v * 100) / 100);
+  const barLen = Math.round(6 * d), barT = Math.round(.45 * d), labelW = Math.round(1.1 * d), gap = Math.round(.08 * d), top = Math.round(.9 * d);
+  const c = document.createElement("canvas");
+  c.width = labelW + barLen + Math.round(.3 * d); c.height = top + vals.length * (barT + gap) + Math.round(.2 * d);
+  const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height);
+  x.fillStyle = "#000"; x.textBaseline = "top";
+  x.font = `bold ${Math.round(.13 * d)}px sans-serif`;
+  x.fillText(`PITCH TEST  ${S.lpi} LPI  ${d} DPI  ${n} frames  ${S.dir === "walk" ? "walk-past" : "tilt"}  - print at 100%`, Math.round(.2 * d), Math.round(.12 * d));
+  x.font = `${Math.round(.095 * d)}px sans-serif`;
+  x.fillText("Lens ridges along the lines. Winner = the bar that looks ONE solid colour and flips evenly.", Math.round(.2 * d), Math.round(.4 * d));
+  let y = top;
+  for (const v of vals) {
+    const row = new Uint8ClampedArray(barLen * barT * 4);
+    for (let i = 0; i < barLen; i++) {
+      const black = Math.floor((i + .5) * v / d * n) % n === 0, val = black ? 0 : 255;
+      for (let r = 0; r < barT; r++) { const p = (r * barLen + i) * 4; row[p] = row[p + 1] = row[p + 2] = val; row[p + 3] = 255; }
+    }
+    x.putImageData(new ImageData(row, barLen, barT), labelW, y);
+    x.strokeStyle = "#999"; x.lineWidth = 2; x.strokeRect(labelW - 2, y - 2, barLen + 3, barT + 3);
+    x.fillStyle = "#000"; x.font = `bold ${Math.round(.16 * d)}px sans-serif`; x.fillText(v.toFixed(2), Math.round(.2 * d), y + barT / 4);
+    y += barT + gap;
+  }
+  if (S.dir === "walk") return c; // lines run top-to-bottom: matches walk-past ridges
+  const r = document.createElement("canvas"); r.width = c.height; r.height = c.width;
+  const rx = r.getContext("2d"); rx.translate(r.width, 0); rx.rotate(Math.PI / 2); rx.drawImage(c, 0, 0); return r;
+}
+
+// ---------------- PNG with print DPI (pHYs chunk)
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(b) { let c = 0xffffffff; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; }
+async function pngWithDpi(canvas, d) {
+  const blob = await new Promise((res, rej) => canvas.toBlob(b => b ? res(b) : rej(new Error("Could not encode the image (too big for this device?).")), "image/png"));
+  const src = new Uint8Array(await blob.arrayBuffer());
+  const ppm = Math.round(d / .0254), chunk = new Uint8Array(21), dv = new DataView(chunk.buffer);
+  dv.setUint32(0, 9); chunk.set([112, 72, 89, 115], 4); dv.setUint32(8, ppm); dv.setUint32(12, ppm); chunk[16] = 1;
+  dv.setUint32(17, crc32(chunk.subarray(4, 17)));
+  const out = new Uint8Array(src.length + 21); out.set(src.subarray(0, 33)); out.set(chunk, 33); out.set(src.subarray(33), 54);
+  return new Blob([out], { type: "image/png" });
+}
+
+// ---------------- saving
+let downloads; const dlReady = (async () => { try { downloads = await window.claude?.use?.("downloads"); } catch (e) { downloads = null; } })();
+function status(msg, cls) { const s = $("status"); s.textContent = msg; s.className = "status " + (cls || ""); }
+async function offer(name, canvas) {
+  const blob = await pngWithDpi(canvas, dpi());
+  const mb = (blob.size / 1048576).toFixed(1);
+  if (downloads) {
+    try { await downloads.save({ filename: name, data: blob }); status(`Saved ${name} (${mb} MB).`, "ok"); $("manual").classList.remove("on"); return; }
+    catch (e) {
+      if (e && e.code === "declined") { status("Save cancelled."); return; }
+      if (e && e.code === "rate_limited") { status("Another save is still open. Finish it, then try again.", "err"); return; }
+    }
+  }
+  if (!window.claude) {
+    // ordinary website (e.g. GitHub Pages): a normal download link works
+    const u = URL.createObjectURL(blob), a = document.createElement("a");
+    a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(u), 60000);
+    status(`Downloaded ${name} (${mb} MB).`, "ok"); return;
+  }
+  const img = $("manualImg"); if (img.dataset.url) URL.revokeObjectURL(img.dataset.url);
+  const u = URL.createObjectURL(blob); img.src = u; img.dataset.url = u; img.alt = name;
+  $("manual").classList.add("on"); status(`${name} is ready below (${mb} MB).`, "ok");
+}
+async function run(btn, fn) {
+  btn.disabled = true; const t = btn.textContent; btn.textContent = "Working…"; status("Building the print file…");
+  await new Promise(r => setTimeout(r, 30));
+  try { await fn(); } catch (e) { status(e.message || String(e), "err"); }
+  btn.disabled = false; btn.textContent = t;
+}
+const tag = () => { const [w, h] = dims(); return `${w}x${h}in_${S.lpi}lpi_${dpi()}dpi_${S.dir}`; };
+$("b-pitch").onclick = () => run($("b-pitch"), async () => { await dlReady; await offer(`pitchtest_${S.lpi}lpi_${dpi()}dpi_${S.dir}.png`, buildPitch()); });
+$("b-one").onclick = () => run($("b-one"), async () => { await dlReady; await offer(`flip-magnet_${tag()}.png`, buildMagnet()); });
+$("b-sheet").onclick = () => run($("b-sheet"), async () => { await dlReady; const s = buildSheet(buildMagnet()); await offer(`flip-sheet_${S.sheet}_${s.count}x_${tag()}.png`, s.canvas); });
+
+// ALIGN-CORE-START
+// Pure line-up engine. Runs in the page and in the Node QA (no DOM use).
+// Transform model (full-res pixels of the images given):
+//   p_ref = s * R(rot) * (p_mov - c_mov) + c_ref + (dx, dy)
+const AlignCore = (() => {
+  function gray(id) {
+    const d = id.data, w = id.width, h = id.height, g = new Float32Array(w * h);
+    for (let i = 0, j = 0; i < g.length; i++, j += 4) g[i] = .299 * d[j] + .587 * d[j + 1] + .114 * d[j + 2];
+    return { g, w, h };
+  }
+  function down(G, max) {
+    const k = Math.min(1, max / Math.max(G.w, G.h));
+    const w = Math.max(8, Math.round(G.w * k)), h = Math.max(8, Math.round(G.h * k));
+    const out = new Float32Array(w * h), sx = G.w / w, sy = G.h / h;
+    for (let y = 0; y < h; y++) {
+      const y0 = Math.floor(y * sy), y1 = Math.max(y0 + 1, Math.floor((y + 1) * sy));
+      for (let x = 0; x < w; x++) {
+        const x0 = Math.floor(x * sx), x1 = Math.max(x0 + 1, Math.floor((x + 1) * sx));
+        let s = 0; for (let yy = y0; yy < y1; yy++) { const r = yy * G.w; for (let xx = x0; xx < x1; xx++) s += G.g[r + xx]; }
+        out[y * w + x] = s / ((y1 - y0) * (x1 - x0));
+      }
+    }
+    // gradient magnitude: edges match across colour / style changes better than raw brightness
+    const gr = new Float32Array(w * h);
+    for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+      const i = y * w + x; gr[i] = Math.abs(out[i + 1] - out[i - 1]) + Math.abs(out[i + w] - out[i - w]);
+    }
+    return { g: gr, w, h, kx: w / G.w, ky: h / G.h };
+  }
+  function points(L, n) {
+    const idx = [];
+    for (let y = 2; y < L.h - 2; y++) for (let x = 2; x < L.w - 2; x++) idx.push(y * L.w + x);
+    idx.sort((a, b) => L.g[b] - L.g[a]);
+    const top = idx.slice(0, Math.max(n, Math.floor(idx.length * .3)));
+    const step = Math.max(1, top.length / n), pts = [];
+    for (let f = 0; f < top.length && pts.length < n; f += step) { const i = top[Math.floor(f)]; pts.push(i % L.w, (i / L.w) | 0, L.g[i]); }
+    return pts;
+  }
+  // normalised cross-correlation of edge maps under transform T
+  function score(T, ctx, Rl, Ml, pts) {
+    const { W0, H0, fw, fh } = ctx, c = Math.cos(T.rot * Math.PI / 180), s = Math.sin(T.rot * Math.PI / 180);
+    let n = 0, sa = 0, sb = 0, saa = 0, sbb = 0, sab = 0; const N = pts.length / 3;
+    for (let p = 0; p < pts.length; p += 3) {
+      const X = (pts[p] + .5) / Rl.kx, Y = (pts[p + 1] + .5) / Rl.ky;
+      const u = X - W0 / 2 - T.dx, v = Y - H0 / 2 - T.dy;
+      const px = (c * u + s * v) / T.s + fw / 2, py = (-s * u + c * v) / T.s + fh / 2;
+      const mx = px * Ml.kx - .5, my = py * Ml.ky - .5;
+      if (mx < 1 || my < 1 || mx >= Ml.w - 2 || my >= Ml.h - 2) continue;
+      const x0 = mx | 0, y0 = my | 0, ax = mx - x0, ay = my - y0, i = y0 * Ml.w + x0, g = Ml.g;
+      const b = (g[i] * (1 - ax) + g[i + 1] * ax) * (1 - ay) + (g[i + Ml.w] * (1 - ax) + g[i + Ml.w + 1] * ax) * ay;
+      const a = pts[p + 2];
+      n++; sa += a; sb += b; saa += a * a; sbb += b * b; sab += a * b;
+    }
+    if (n < N * .45) return -1;
+    const cov = sab - sa * sb / n, va = saa - sa * sa / n, vb = sbb - sb * sb / n;
+    if (va <= 0 || vb <= 0) return -1;
+    return cov / Math.sqrt(va * vb) * Math.min(1, n / (N * .8));
+  }
+  function climb(T, f, steps, iters) {
+    let best = f(T), cur = { ...T };
+    for (let k = 0; k < iters; k++) {
+      let moved = false;
+      for (const [key, d, mul] of steps) {
+        for (const sg of [1, -1]) {
+          const t = { ...cur }; t[key] = mul ? cur[key] * Math.exp(sg * d) : cur[key] + sg * d;
+          const v = f(t); if (v > best + 1e-6) { best = v; cur = t; moved = true; }
+        }
+      }
+      if (!moved) {
+        if (steps[0][1] < steps[0][3]) break;
+        steps = steps.map(([key, d, mul, min]) => [key, d / 2, mul, min]);
+      }
+    }
+    return { T: cur, score: best };
+  }
+  // Engine 1: plain JavaScript coarse-to-fine search (no download needed)
+  function jsAlign(refID, movID, init, onStep) {
+    const R = gray(refID), M = gray(movID);
+    const ctx = { W0: R.w, H0: R.h, fw: M.w, fh: M.h };
+    const s0 = init && init.s ? init.s : Math.max(R.w / M.w, R.h / M.h);
+    const L = {}; for (const m of [64, 128, 256, 512]) L[m] = [down(R, m), down(M, m * Math.max(1, s0 < 1 ? 1 / s0 : 1))];
+    // coarse grid
+    const [r64, m64] = L[64], p64 = points(r64, 450), stepX = R.w / r64.w, stepY = R.h / r64.h;
+    let cands = [];
+    for (let si = 0; si < 44; si++) {
+      const s = s0 * Math.exp(Math.log(.6) + si * (Math.log(1.7 / .6) / 43));
+      for (let dy = -R.h * .5; dy <= R.h * .5; dy += stepY) for (let dx = -R.w * .5; dx <= R.w * .5; dx += stepX) {
+        const v = score({ s, rot: 0, dx, dy }, ctx, r64, m64, p64);
+        if (cands.length < 8 || v > cands[cands.length - 1].score) {
+          cands.push({ T: { s, rot: 0, dx, dy }, score: v }); cands.sort((a, b) => b.score - a.score); if (cands.length > 8) cands.pop();
+        }
+      }
+    }
+    onStep && onStep("coarse");
+    for (const [m, keep, rotStep] of [[128, 4, 0], [256, 2, .5], [512, 1, .2]]) {
+      const [rl, ml] = L[m], pts = points(rl, m >= 512 ? 3000 : 1500), px = R.w / rl.w;
+      const steps = [["s", .02, true, .002], ["dx", 2 * px, false, px / 4], ["dy", 2 * px, false, px / 4]];
+      if (rotStep) steps.push(["rot", rotStep, false, rotStep / 8]);
+      cands = cands.map(c => climb(c.T, t => score(t, ctx, rl, ml, pts), steps, 80)).sort((a, b) => b.score - a.score).slice(0, keep);
+      onStep && onStep("level " + m);
+    }
+    const best = cands[0];
+    return { ...best.T, score: best.score, engine: "js" };
+  }
+  // final quality score of any transform (same yardstick for every engine)
+  function quality(refID, movID, T) {
+    const R = gray(refID), M = gray(movID), ctx = { W0: R.w, H0: R.h, fw: M.w, fh: M.h };
+    const rl = down(R, 512), ml = down(M, 512 * Math.max(1, T.s < 1 ? 1 / T.s : 1));
+    return score(T, ctx, rl, ml, points(rl, 4000));
+  }
+  // Engine 2: OpenCV feature matching (ORB, then AKAZE) + RANSAC
+  function fit(P) {
+    let mx = 0, my = 0, rx = 0, ry = 0; for (const p of P) { mx += p[0]; my += p[1]; rx += p[2]; ry += p[3]; }
+    const n = P.length; mx /= n; my /= n; rx /= n; ry /= n;
+    let nr = 0, ni = 0, den = 0;
+    for (const p of P) { const ax = p[0] - mx, ay = p[1] - my, bx = p[2] - rx, by = p[3] - ry; nr += bx * ax + by * ay; ni += by * ax - bx * ay; den += ax * ax + ay * ay; }
+    const Ar = nr / den, Ai = ni / den; return { Ar, Ai, Tx: rx - (Ar * mx - Ai * my), Ty: ry - (Ai * mx + Ar * my) };
+  }
+  const resid = (M, p) => Math.hypot(M.Ar * p[0] - M.Ai * p[1] + M.Tx - p[2], M.Ai * p[0] + M.Ar * p[1] + M.Ty - p[3]);
+  function ransac(P, thr) {
+    let best = null, bestIn = [], seed = 12345;
+    const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+    for (let it = 0; it < 4000 && P.length >= 2; it++) {
+      const i = rnd() * P.length | 0, j = rnd() * P.length | 0; if (i === j) continue;
+      const M = fit([P[i], P[j]]); const s = Math.hypot(M.Ar, M.Ai); if (!(s > .2 && s < 5)) continue;
+      const inl = P.filter(p => resid(M, p) < thr);
+      if (inl.length > bestIn.length) { bestIn = inl; best = M; }
+    }
+    if (bestIn.length < 3) return null;
+    let M = fit(bestIn); bestIn = P.filter(p => resid(M, p) < thr); M = fit(bestIn);
+    const errs = bestIn.map(p => resid(M, p)).sort((a, b) => a - b);
+    return { M, inliers: bestIn.length, total: P.length, err: errs[errs.length >> 1] };
+  }
+  function cvAlign(cv, refID, movID) {
+    const toMat = (id, max) => {
+      const m = cv.matFromImageData(id), k = Math.min(1, max / Math.max(id.width, id.height)), g = new cv.Mat(), s = new cv.Mat();
+      cv.cvtColor(m, g, cv.COLOR_RGBA2GRAY); cv.resize(g, s, new cv.Size(Math.round(id.width * k), Math.round(id.height * k)), 0, 0, cv.INTER_AREA);
+      m.delete(); g.delete(); return { mat: s, k };
+    };
+    const A = toMat(refID, 1100), B = toMat(movID, 1100);
+    let best = null; const tried = [];
+    try {
+      for (const kind of ["orb", "akaze"]) {
+        const det = kind === "akaze" ? new cv.AKAZE() : new cv.ORB(5000);
+        const k1 = new cv.KeyPointVector(), k2 = new cv.KeyPointVector(), d1 = new cv.Mat(), d2 = new cv.Mat(), none = new cv.Mat();
+        const bf = new cv.BFMatcher(cv.NORM_HAMMING, false), mm = new cv.DMatchVectorVector(), P = [];
+        try {
+          det.detectAndCompute(A.mat, none, k1, d1); det.detectAndCompute(B.mat, none, k2, d2);
+          if (d1.rows > 1 && d2.rows > 1) {
+            bf.knnMatch(d2, d1, mm, 2);
+            for (let i = 0; i < mm.size(); i++) {
+              const p = mm.get(i); if (p.size() < 2) continue;
+              const m = p.get(0), n = p.get(1);
+              if (m.distance < .8 * n.distance) { const q = k2.get(m.queryIdx).pt, r = k1.get(m.trainIdx).pt; P.push([q.x / B.k, q.y / B.k, r.x / A.k, r.y / A.k]); }
+            }
+          }
+        } finally { [k1, k2, d1, d2, none, bf, mm, det].forEach(o => { try { o.delete(); } catch (e) {} }); }
+        const r = ransac(P, 4 / A.k);
+        tried.push({ kind, matches: P.length, inliers: r ? r.inliers : 0, err: r ? r.err : null });
+        if (r && (!best || r.inliers > best.inliers)) best = { ...r, kind };
+        if (best && best.inliers >= 40) break;
+      }
+    } finally { A.mat.delete(); B.mat.delete(); }
+    if (!best || best.inliers < 8) return { fail: true, tried, engine: "opencv" };
+    const { Ar, Ai, Tx, Ty } = best.M, cx = movID.width / 2, cy = movID.height / 2;
+    return {
+      s: Math.hypot(Ar, Ai), rot: Math.atan2(Ai, Ar) * 180 / Math.PI,
+      dx: Ar * cx - Ai * cy + Tx - refID.width / 2, dy: Ai * cx + Ar * cy + Ty - refID.height / 2,
+      inliers: best.inliers, matches: best.total, err: best.err, kind: best.kind, tried, engine: "opencv"
+    };
+  }
+  const verdict = q => q >= .55 ? "PASS" : q >= .35 ? "WARN" : "FAIL";
+  return { jsAlign, cvAlign, quality, verdict };
+})();
+// ALIGN-CORE-END
+
+// ---------------- auto line-up: built-in engine (always) + OpenCV (optional download)
+let cvP = null;
+function loadCV() {
+  if (cvP) return cvP;
+  cvP = new Promise((res, rej) => {
+    const s = document.createElement("script"); s.src = CV_URL; s.async = true;
+    const t0 = Date.now(); const kill = setTimeout(() => rej(new Error("timed out after 30 s")), 30000);
+    s.onerror = () => { clearTimeout(kill); rej(new Error("download blocked or failed")); };
+    s.onload = async () => {
+      try {
+        for (;;) {
+          let c = window.cv;
+          if (c instanceof Promise) { c = await c; window.cv = c; }
+          // wrap it: the OpenCV module has its own .then(), and resolving a promise with it loops forever
+          if (c && c.Mat && c.ORB) { clearTimeout(kill); return res({ cv: c, ms: Date.now() - t0 }); }
+          if (Date.now() - t0 > 30000) throw new Error("engine never started");
+          await new Promise(r => setTimeout(r, 150));
+        }
+      } catch (e) { clearTimeout(kill); rej(e); }
+    };
+    document.head.appendChild(s);
+  });
+  cvP.catch(() => { cvP = null; });
+  return cvP;
+}
+// full picture as ImageData, capped at 1600 px for speed; k = scale used
+function imgData(f, max = 1600) {
+  const k = Math.min(1, max / Math.max(f.w, f.h)), c = document.createElement("canvas");
+  c.width = Math.round(f.w * k); c.height = Math.round(f.h * k);
+  const x = c.getContext("2d"); x.drawImage(f.img, 0, 0, c.width, c.height);
+  return { id: x.getImageData(0, 0, c.width, c.height), k };
+}
+// core result (scaled pictures) <-> slider values (full-size pictures)
+const toFull = (r, a, b) => ({ s: r.s * b / a, rot: r.rot, dx: r.dx / a, dy: r.dy / a });
+const toCore = (f, a, b) => ({ s: f.s * a / b, rot: f.rot, dx: f.dx * a, dy: f.dy * a });
+function finalVerdict(q, r) {
+  // feature PASS needs most matches to agree (cartoon vs photo gives many stray matches)
+  if (q >= .55 || (r && r.inliers >= 30 && r.inliers / r.matches >= .5 && r.err < 2.5)) return "PASS";
+  if (q >= .35 || (r && r.inliers >= 20)) return "WARN";
+  return "FAIL";
+}
+const QA = {}; // per picture index: last report
+function report(i, box) {
+  const rep = QA[i]; box.textContent = ""; if (!rep) return;
+  const head = document.createElement("div"); head.className = "qa-head";
+  const pill = document.createElement("span"); pill.className = "pill " + ({ PASS: "ok", WARN: "meh", FAIL: "bad" }[rep.verdict]); pill.textContent = rep.verdict;
+  const msg = document.createElement("span"); msg.textContent = rep.msg; head.append(pill, msg); box.appendChild(head);
+  const t = document.createElement("table"); t.className = "qa";
+  for (const [k, v] of rep.rows) { const tr = document.createElement("tr"); const a = document.createElement("th"); a.textContent = k; const b = document.createElement("td"); b.textContent = v; tr.append(a, b); t.appendChild(tr); }
+  const wrap = document.createElement("div"); wrap.className = "qa-wrap"; wrap.appendChild(t); box.appendChild(wrap);
+  const cp = document.createElement("button"); cp.type = "button"; cp.className = "btn sm"; cp.textContent = "Copy report";
+  cp.onclick = async () => {
+    const txt = `Flip Magnet line-up QA (picture ${i + 1})\n${rep.verdict}: ${rep.msg}\n` + rep.rows.map(r => `${r[0]}: ${r[1]}`).join("\n");
+    try { await navigator.clipboard.writeText(txt); cp.textContent = "Copied"; }
+    catch (e) { const r = document.createRange(); r.selectNodeContents(t); const s = getSelection(); s.removeAllRanges(); s.addRange(r); cp.textContent = "Selected - press Ctrl+C"; }
+  };
+  box.appendChild(cp);
+}
+const tick0 = () => new Promise(r => setTimeout(r, 30));
+async function autoAlign(i, btn, out, box) {
+  const ref = F[active()[0]], f = F[i]; if (!ref || !f || ref === f) return;
+  btn.disabled = true; const rows = [];
+  try {
+    out.textContent = "Reading the pictures…"; await tick0();
+    const A = imgData(ref), B = imgData(f);
+    rows.push(["Picture sizes", `${ref.w}×${ref.h} and ${f.w}×${f.h}`]);
+    out.textContent = "Lining up (built-in engine)…"; await tick0();
+    let t0 = performance.now();
+    const js = AlignCore.jsAlign(A.id, B.id, toCore({ s: Math.max(ref.w / f.w, ref.h / f.h), rot: 0, dx: 0, dy: 0 }, A.k, B.k));
+    const qJs = AlignCore.quality(A.id, B.id, js);
+    rows.push(["Built-in engine", `score ${qJs.toFixed(3)} · size ${(toFull(js, A.k, B.k).s * 100).toFixed(1)}% · ${Math.round(performance.now() - t0)} ms`]);
+    let best = { r: js, q: qJs, name: "built-in" };
+    out.textContent = "Lining up (OpenCV engine, downloads once)…"; await tick0();
+    try {
+      const { cv, ms } = await loadCV(); rows.push(["OpenCV", `loaded in ${ms} ms`]);
+      t0 = performance.now();
+      const ocv = AlignCore.cvAlign(cv, A.id, B.id);
+      if (ocv.fail) rows.push(["OpenCV match", "no reliable match · " + ocv.tried.map(t => `${t.kind} ${t.inliers}/${t.matches}`).join(", ")]);
+      else {
+        const qCv = AlignCore.quality(A.id, B.id, ocv);
+        rows.push(["OpenCV match", `score ${qCv.toFixed(3)} · ${ocv.inliers}/${ocv.matches} spots (${ocv.kind}) · error ${ocv.err.toFixed(2)} px · ${Math.round(performance.now() - t0)} ms`]);
+        const vCv = finalVerdict(qCv, ocv), vBest = finalVerdict(best.q, null);
+        if (qCv > best.q + .005 || (vCv !== "FAIL" && vBest === "FAIL")) best = { r: ocv, q: qCv, name: "OpenCV" };
+      }
+    } catch (e) { rows.push(["OpenCV", "not available here (" + (e.message || e) + "). Built-in engine used."]); }
+    const T = toFull(best.r, A.k, B.k); Object.assign(f, T);
+    const v = finalVerdict(best.q, best.r.engine === "opencv" ? best.r : null);
+    rows.push(["Used", best.name], ["Result", `size ${(T.s * 100).toFixed(2)}% · turn ${T.rot.toFixed(2)}° · move ${T.dx.toFixed(1)}, ${T.dy.toFixed(1)} px`]);
+    QA[i] = { verdict: v, rows, msg: v === "PASS" ? "Lined up. Check it in Overlay." : v === "WARN" ? "Roughly lined up. Check Overlay and nudge with the sliders." : "Couldn't line these up. Use the sliders and the Overlay check." };
+    out.textContent = "";
+    buildAligns(); setMode("overlay"); render();
+  } catch (e) {
+    rows.push(["Error", e.message || String(e)]);
+    QA[i] = { verdict: "FAIL", rows, msg: "Auto line-up stopped. Use the sliders." }; out.textContent = ""; report(i, box);
+  } finally { btn.disabled = false; }
+}
+async function checkAlign(i, btn, box) {
+  const ref = F[active()[0]], f = F[i]; if (!ref || !f || ref === f) return;
+  btn.disabled = true; await tick0();
+  try {
+    const A = imgData(ref), B = imgData(f), q = AlignCore.quality(A.id, B.id, toCore(f, A.k, B.k)), v = finalVerdict(q, null);
+    QA[i] = { verdict: v, rows: [["Check of current sliders", `score ${q.toFixed(3)}`], ["Sliders", `size ${(f.s * 100).toFixed(2)}% · turn ${f.rot.toFixed(2)}° · move ${f.dx.toFixed(1)}, ${f.dy.toFixed(1)} px`]],
+      msg: v === "PASS" ? "Edges line up." : v === "WARN" ? "Close. Parts that stay still may look a little doubled." : "Edges don't line up. For very different pictures (cartoon vs photo) this is normal: trust the Overlay." };
+    report(i, box);
+  } catch (e) { box.textContent = e.message; }
+  btn.disabled = false;
+}
+
+// ---------------- UI: slots
+let pick = -1;
+function buildSlots() {
+  const box = $("slots"); box.textContent = "";
+  F.forEach((f, i) => {
+    const d = document.createElement("div"); d.className = "slot" + (f ? " has" : ""); d.tabIndex = 0; d.setAttribute("role", "button");
+    d.setAttribute("aria-label", f ? `Picture ${i + 1}: ${f.name}. Press to replace.` : `Add picture ${i + 1}${i === 2 ? " (optional)" : ""}`);
+    if (f) {
+      const im = document.createElement("img"); im.src = f.url; im.alt = ""; d.appendChild(im);
+      const t = document.createElement("span"); t.className = "tag"; t.textContent = i + 1; d.appendChild(t);
+      if (f.demo) { const e = document.createElement("span"); e.className = "ex"; e.textContent = "Example"; d.appendChild(e); }
+      if (i > 0 || !f.demo) { const x = document.createElement("button"); x.type = "button"; x.className = "x"; x.textContent = "×"; x.setAttribute("aria-label", `Remove picture ${i + 1}`);
+        x.onclick = ev => { ev.stopPropagation(); F[i] = null; for (const j of [0, 1, 2]) delete QA[j]; if (i === 0 && F[1]) { F[0] = F[1]; F[1] = F[2]; F[2] = null; resetT(F[0]); } buildSlots(); buildAligns(); render(); }; d.appendChild(x); }
+    } else { d.textContent = i === 2 ? "+ Picture 3 (optional)" : `+ Picture ${i + 1}`; }
+    const open = () => { pick = i; $("file").value = ""; $("file").click(); };
+    d.onclick = open; d.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } };
+    d.ondragover = e => { e.preventDefault(); d.classList.add("drag"); };
+    d.ondragleave = () => d.classList.remove("drag");
+    d.ondrop = e => { e.preventDefault(); d.classList.remove("drag"); const file = e.dataTransfer.files && e.dataTransfer.files[0]; if (file) loadFile(i, file); };
+    box.appendChild(d);
+  });
+}
+function resetT(f) { if (f) { f.s = 1; f.rot = 0; f.dx = 0; f.dy = 0; } }
+function defaultT(i) {
+  const ref = F[active()[0]], f = F[i]; if (!ref || !f || ref === f) return;
+  f.s = Math.max(ref.w / f.w, ref.h / f.h); f.rot = 0; f.dx = 0; f.dy = 0;
+}
+$("file").onchange = e => { const file = e.target.files && e.target.files[0]; if (file && pick >= 0) loadFile(pick, file); };
+function loadFile(i, file) {
+  if (!/^image\//.test(file.type)) { status("That file isn't a picture.", "err"); return; }
+  const url = URL.createObjectURL(file), img = new Image();
+  img.onload = () => {
+    // a fresh real picture replaces the examples
+    if (F.some(f => f && f.demo)) F = F.map(f => f && f.demo ? null : f);
+    let slot = i; if (!F[0] && i > 0) slot = 0; else if (i === 2 && !F[1]) slot = 1;
+    F[slot] = { img, url, name: file.name, demo: false, s: 1, rot: 0, dx: 0, dy: 0, w: img.naturalWidth, h: img.naturalHeight };
+    // a new picture makes old line-up reports stale
+    for (const j of [0, 1, 2]) if (slot === 0 || j === slot) delete QA[j];
+    if (slot > 0) defaultT(slot); else for (const j of [1, 2]) if (F[j]) defaultT(j);
+    buildSlots(); buildAligns(); render(); status("");
+  };
+  img.onerror = () => status("Couldn't open that picture. Try a JPG or PNG.", "err");
+  img.src = url;
+}
+
+// ---------------- UI: alignment controls for frames 2 and 3
+function buildAligns() {
+  const box = $("aligns"); box.textContent = "";
+  const ids = active(); if (ids.length < 2) return;
+  const ref = F[ids[0]];
+  ids.slice(1).forEach(i => {
+    const f = F[i], sec = document.createElement("div"); sec.className = "align";
+    const h = document.createElement("h3"); h.textContent = `Line up picture ${i + 1} to picture 1`;
+    const btns = document.createElement("span"); btns.style.display = "flex"; btns.style.gap = "6px"; btns.style.flexWrap = "wrap";
+    const auto = document.createElement("button"); auto.type = "button"; auto.className = "btn sm primary"; auto.textContent = "Auto line-up";
+    const ck = document.createElement("button"); ck.type = "button"; ck.className = "btn sm"; ck.textContent = "Check";
+    const rs = document.createElement("button"); rs.type = "button"; rs.className = "btn sm"; rs.textContent = "Reset";
+    btns.append(auto, ck, rs); h.appendChild(btns); sec.appendChild(h);
+    const note = document.createElement("div"); note.className = "hint"; note.style.margin = "0"; note.setAttribute("aria-live", "polite");
+    const ctl = (label, key, min, max, step, toV, fromV) => {
+      const row = document.createElement("div"); row.className = "slide";
+      const sp = document.createElement("span"); sp.textContent = label;
+      const r = document.createElement("input"); r.type = "range"; r.min = min; r.max = max; r.step = step; r.setAttribute("aria-label", `${label}, picture ${i + 1}`);
+      const n = document.createElement("input"); n.type = "number"; n.min = min; n.max = max; n.step = step; n.setAttribute("aria-label", `${label} value, picture ${i + 1}`);
+      const sync = () => { const v = toV(f[key]); r.value = v; n.value = Math.round(v * 100) / 100; };
+      const set = v => { if (!isFinite(v)) return; f[key] = fromV(v); sync(); render(); };
+      r.oninput = () => set(+r.value); n.onchange = () => set(+n.value);
+      sync(); row.append(sp, r, n); return row;
+    };
+    sec.append(
+      ctl("Size %", "s", 30, 300, .1, v => v * 100, v => v / 100),
+      ctl("Turn °", "rot", -10, 10, .05, v => v, v => v),
+      ctl("Move ↔", "dx", -Math.round(ref.w / 2), Math.round(ref.w / 2), 1, v => v, v => v),
+      ctl("Move ↕", "dy", -Math.round(ref.h / 2), Math.round(ref.h / 2), 1, v => v, v => v),
+      note);
+    const qa = document.createElement("div"); qa.className = "qa-box"; qa.setAttribute("aria-live", "polite"); sec.appendChild(qa); report(i, qa);
+    auto.onclick = () => autoAlign(i, auto, note, qa);
+    ck.onclick = () => checkAlign(i, ck, qa);
+    rs.onclick = () => { defaultT(i); delete QA[i]; buildAligns(); render(); };
+    box.appendChild(sec);
+  });
+}
+
+// ---------------- UI: settings
+function setDir(d) { S.dir = d; $("dir-walk").setAttribute("aria-pressed", d === "walk"); $("dir-tilt").setAttribute("aria-pressed", d === "tilt"); drawDirArt(); save(); render(); }
+$("dir-walk").onclick = () => setDir("walk"); $("dir-tilt").onclick = () => setDir("tilt");
+function drawDirArt() {
+  const walk = S.dir === "walk";
+  const lines = []; for (let k = 0; k < 7; k++) lines.push(walk ? `<line x1="${8 + k * 6}" y1="6" x2="${8 + k * 6}" y2="46" />` : `<line x1="6" y1="${8 + k * 6}" x2="46" y2="${8 + k * 6}" />`);
+  $("dirart").innerHTML = `<svg width="52" height="52" viewBox="0 0 52 52" aria-hidden="true"><rect x="3" y="3" width="46" height="46" rx="6" fill="none" stroke="currentColor" stroke-width="2"/><g stroke="currentColor" stroke-width="2.5">${lines.join("")}</g></svg>
+  <span>${walk ? "Lens ridges run <b>top to bottom</b>. It changes as people walk past or you turn it left and right." : "Lens ridges run <b>left to right</b>. It changes when you tip it toward you or away. Less ghosting."}</span>`;
+}
+function bindNum(id, key, cb) { const el = $(id); el.value = S[key]; el.onchange = el.oninput = () => { const v = el.value; if (v === "" || !isFinite(+v)) return; S[key] = el.type === "number" ? +v : v; save(); cb && cb(); render(); }; }
+bindNum("lpi", "lpi"); bindNum("dpi", "dpiCustom"); bindNum("w", "w"); bindNum("h", "h");
+$("printer").value = S.printer; $("printer").onchange = () => { S.printer = $("printer").value; $("dpiWrap").hidden = S.printer !== "custom"; save(); render(); };
+$("dpiWrap").hidden = S.printer !== "custom";
+$("size").value = S.size; $("size").onchange = () => { S.size = $("size").value; $("cw").hidden = $("ch").hidden = S.size !== "custom"; save(); render(); };
+$("cw").hidden = $("ch").hidden = S.size !== "custom";
+$("sheet").value = S.sheet; $("sheet").onchange = () => { S.sheet = $("sheet").value; save(); render(); };
+$("bleed").value = S.bleed; $("bleed").onchange = () => { S.bleed = $("bleed").value; save(); render(); };
+// printer option values like "600h" parse to 600
+for (const [r, n, key] of [["panX", "panXn", "panX"], ["panY", "panYn", "panY"], ["zoom", "zoomn", "zoom"]]) {
+  const R = $(r), N = $(n); R.value = N.value = S[key];
+  const set = v => { if (!isFinite(v)) return; S[key] = Math.min(+R.max, Math.max(+R.min, v)); R.value = N.value = S[key]; save(); render(); };
+  R.oninput = () => set(+R.value); N.onchange = () => set(+N.value);
+}
+
+// ---------------- preview
+let mode = "flip", tick = 0, timer = null, cache = null, stripsJob = 0;
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+function setMode(m) { mode = m; document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === m)); render(); }
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => setMode(b.dataset.mode));
+$("prev").onclick = () => { if (mode === "flip") { tick++; drawPreview(); } };
+
+function render() {
+  const fr = frames(), d = dpi(), [wIn, hIn] = dims(), n = Math.max(fr.length, 2);
+  // facts
+  const pps = d / (S.lpi * n), whole = Math.abs(pps - Math.round(pps)) < 1e-6;
+  const f = $("facts"); f.textContent = "";
+  const add = (big, small, pill) => { const e = document.createElement("div"); e.className = "fact"; const b = document.createElement("b"); b.textContent = big; const s = document.createElement("span"); s.textContent = small; e.append(b, s); if (pill) { const p = document.createElement("span"); p.className = "pill " + pill[0]; p.textContent = pill[1]; p.style.marginTop = "4px"; p.style.display = "inline-block"; e.appendChild(p); } f.appendChild(e); };
+  add(`${pps.toFixed(2)} px`, "per strip", whole ? ["ok", "whole number"] : ["meh", "works, a bit softer"]);
+  add(`${Math.round(wIn * d)} × ${Math.round(hIn * d)}`, "pixels per magnet");
+  add(`${(1 / (S.lpi * n) * 25.4).toFixed(3)} mm`, "strip width");
+  add(`${sheetCount()} magnets`, `per ${SHEET_NAMES[S.sheet]} sheet`);
+  $("o-pitch").textContent = `${S.lpi - .6 > 0 ? (S.lpi - .6).toFixed(1) : "?"} – ${(S.lpi + .6).toFixed(1)} LPI · ${d} DPI · ${S.dir === "walk" ? "walk-past" : "tilt"}`;
+  $("o-one").textContent = `${wIn} × ${hIn} in · ${S.lpi} LPI · ${d} DPI${S.bleed === "1" ? " · bleed + marks" : ""}`;
+  $("o-sheet").textContent = `${SHEET_NAMES[S.sheet]} · ${sheetCount()} magnets`;
+  const ok = fr.length >= 2; $("b-one").disabled = !ok; $("b-sheet").disabled = !ok;
+  // preview frames
+  if (!fr.length) { cache = null; drawPreview(); return; }
+  const pw = 560, ph = Math.round(560 * hIn / wIn);
+  cache = { list: fr.map(x => renderFrame(x, fr[0], pw, ph, 0)), pw, ph };
+  drawPreview();
+}
+function drawPreview() {
+  const c = $("prev"), x = c.getContext("2d"), cap = $("cap");
+  clearInterval(timer); timer = null; c.classList.remove("px");
+  if (!cache) { c.width = 560; c.height = 560; x.clearRect(0, 0, 560, 560); cap.textContent = "Add pictures to see the preview."; return; }
+  const { list, pw, ph } = cache; c.width = pw; c.height = ph;
+  if (mode === "flip") {
+    const draw = () => { const k = tick % list.length; x.drawImage(list[k], 0, 0); cap.textContent = `Showing picture ${frames().length > 1 ? (k + 1) : 1} of ${list.length}. ${reduce ? "Tap the preview to switch." : "Tap to switch faster."}`; };
+    draw(); if (!reduce && list.length > 1) timer = setInterval(() => { tick++; draw(); }, 1100);
+  } else if (mode === "overlay") {
+    x.drawImage(list[0], 0, 0);
+    if (list.length > 1) { x.globalAlpha = .5; x.drawImage(list[list.length > 2 ? 1 + (tick % 2) : 1], 0, 0); x.globalAlpha = 1; }
+    cap.textContent = list.length > 1 ? "Pictures mixed 50/50. Parts that should stay still (sign, shelves) must look sharp, not doubled. Nudge the sliders until they do." : "Add a second picture to check the line-up.";
+  } else {
+    const job = ++stripsJob; cap.textContent = "Building strips…";
+    setTimeout(() => {
+      if (job !== stripsJob) return;
+      try {
+        if (frames().length < 2) { cap.textContent = "Add a second picture to see the strips."; return; }
+        const d = dpi(), [wIn, hIn] = dims(), fr = frames(), iw = Math.round(wIn * d), ih = Math.round(hIn * d);
+        const cw = Math.min(iw, 180), chh = Math.min(ih, 180);
+        // render only a centre patch at print resolution
+        const patch = fr.map(f => { const full = renderFrame(f, fr[0], iw, ih, 0); const p = document.createElement("canvas"); p.width = cw; p.height = chh; p.getContext("2d").drawImage(full, (iw - cw) / 2, (ih - chh) / 2, cw, chh, 0, 0, cw, chh); return p; });
+        // keep the strip phase of the real print by offsetting the owner math
+        const il = interlace(patch, S.lpi, d, S.dir);
+        c.width = cw * 3; c.height = chh * 3; c.classList.add("px");
+        x.imageSmoothingEnabled = false; x.drawImage(il, 0, 0, c.width, c.height);
+        cap.textContent = `Centre of the print, 1 printer dot = 3 screen pixels. Each lens covers ${fr.length} strips.`;
+      } catch (e) { cap.textContent = e.message; }
+    }, 40);
+  }
+}
+
+// ---------------- boot
+setDir(S.dir);
+loadDemo(); buildSlots(); buildAligns();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (F[0] && F[0].demo) { loadDemo(); buildSlots(); } });
+render();
+})();
+</script>
