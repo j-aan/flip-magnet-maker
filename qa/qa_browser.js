@@ -11,7 +11,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await (await page.target().createCDPSession()).send("Page.setDownloadBehavior", { behavior: "allow", downloadPath: DL });
   const errors = []; page.on("pageerror", e => errors.push("pageerror: " + e.message));
   page.on("console", m => { if (m.type() === "error") errors.push("console: " + m.text()); });
-  await page.goto(require("url").pathToFileURL(path.resolve(PAGE)).href, { waitUntil: "networkidle2" });
+  const target = /^https?:\/\//.test(PAGE) ? PAGE : require("url").pathToFileURL(path.resolve(PAGE)).href;
+  await page.goto(target, { waitUntil: "networkidle2" });
   const pickInto = async (slot, file) => {
     const [fc] = await Promise.all([page.waitForFileChooser(), page.evaluate(i => document.querySelectorAll("#slots .slot")[i].click(), slot)]);
     await fc.accept([path.join(IMG, file)]); await sleep(800);

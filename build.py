@@ -12,6 +12,7 @@ src = (ROOT / "src" / "flip-magnet.html").read_text(encoding="utf-8")
 head = (
     '<!doctype html><html lang="en"><head><meta charset="utf-8">'
     '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
+    '<link rel="icon" href="data:,">'
     "<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>"
     "</head><body>\n"
 )
